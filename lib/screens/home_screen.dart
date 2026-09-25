@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'circle_tab.dart';
 import 'vault_tab.dart';
 import 'safety_plan_tab.dart';
 import 'bystander_tab.dart';
 import 'resources_tab.dart';
+import '../providers/app_state.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -14,7 +16,6 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _currentIndex = 0;
-  bool _isDisguised = false;
 
   final List<Widget> _tabs = const [
     CircleTab(),
@@ -24,35 +25,23 @@ class _HomeScreenState extends State<HomeScreen> {
     ResourcesTab(),
   ];
 
-  void _toggleDisguise() {
-    setState(() {
-      _isDisguised = !_isDisguised;
-    });
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(_isDisguised ? 'Disguise Mode Active (Calculator View)' : 'Standard Silent Circle View'),
-        backgroundColor: Colors.teal,
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isDisguised) {
+    final appState = context.watch<AppState>();
+
+    if (appState.isDisguised) {
       return Scaffold(
         appBar: AppBar(
-          backgroundColor: Colors.grey.shade900,
-          title: const Text('Calculator', style: TextStyle(color: Colors.white)),
+          title: const Text('Calculator'),
           actions: [
             IconButton(
               icon: const Icon(Icons.lock_open, color: Colors.tealAccent),
-              onPressed: _toggleDisguise,
+              onPressed: () => appState.toggleDisguise(),
               tooltip: 'Exit Disguise',
             ),
           ],
         ),
         body: Container(
-          color: Colors.black,
           padding: const EdgeInsets.all(24),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.end,
@@ -60,9 +49,9 @@ class _HomeScreenState extends State<HomeScreen> {
               Container(
                 alignment: Alignment.centerRight,
                 padding: const EdgeInsets.all(16),
-                child: const Text('0', style: TextStyle(fontSize: 48, color: Colors.white)),
+                child: const Text('0', style: TextStyle(fontSize: 48)),
               ),
-              const Divider(color: Colors.grey),
+              const Divider(),
               for (var row in [['7', '8', '9', '/'], ['4', '5', '6', 'x'], ['1', '2', '3', '-'], ['C', '0', '=', '+']])
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 4),
@@ -71,10 +60,9 @@ class _HomeScreenState extends State<HomeScreen> {
                     children: row.map((btn) => ElevatedButton(
                           onPressed: () {},
                           style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.grey.shade800,
                             padding: const EdgeInsets.all(20),
                           ),
-                          child: Text(btn, style: const TextStyle(fontSize: 20, color: Colors.white)),
+                          child: Text(btn, style: const TextStyle(fontSize: 20)),
                         )).toList(),
                   ),
                 ),
@@ -86,15 +74,19 @@ class _HomeScreenState extends State<HomeScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        backgroundColor: Colors.grey.shade900,
         title: const Text(
           'Silent Circle',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
         actions: [
           IconButton(
+            icon: Icon(appState.isDarkMode ? Icons.light_mode_outlined : Icons.dark_mode_outlined),
+            onPressed: () => appState.toggleTheme(),
+            tooltip: 'Toggle Theme',
+          ),
+          IconButton(
             icon: const Icon(Icons.visibility_off_outlined, color: Colors.tealAccent),
-            onPressed: _toggleDisguise,
+            onPressed: () => appState.toggleDisguise(),
             tooltip: 'Quick Disguise Mode',
           ),
         ],
@@ -103,9 +95,8 @@ class _HomeScreenState extends State<HomeScreen> {
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        backgroundColor: Colors.grey.shade900,
-        selectedItemColor: Colors.tealAccent,
-        unselectedItemColor: Colors.white60,
+        selectedItemColor: Colors.teal,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6),
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(

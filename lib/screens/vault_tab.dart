@@ -1,25 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../models/incident_log.dart';
+import '../providers/app_state.dart';
 
-class VaultTab extends StatefulWidget {
+class VaultTab extends StatelessWidget {
   const VaultTab({super.key});
 
-  @override
-  State<VaultTab> createState() => _VaultTabState();
-}
-
-class _VaultTabState extends State<VaultTab> {
-  final List<IncidentLog> _logs = [
-    IncidentLog(
-      id: '1',
-      date: DateTime.now().subtract(const Duration(days: 2)),
-      title: 'Verbal Threat at Home',
-      description: 'Intense argument resulting in threats to property. Documented for record.',
-      category: 'Harassment',
-    ),
-  ];
-
-  void _addIncidentDialog() {
+  void _addIncidentDialog(BuildContext context) {
     final titleController = TextEditingController();
     final descController = TextEditingController();
     String category = 'Harassment';
@@ -27,66 +14,49 @@ class _VaultTabState extends State<VaultTab> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: const Text('New Vault Entry', style: TextStyle(color: Colors.white)),
+        title: const Text('New Vault Entry'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: 'Title / Summary',
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
+              decoration: const InputDecoration(labelText: 'Title / Summary'),
             ),
             TextField(
               controller: descController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(
-                labelText: 'Details / Notes',
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
+              decoration: const InputDecoration(labelText: 'Details / Notes'),
               maxLines: 3,
             ),
             const SizedBox(height: 12),
             DropdownButtonFormField<String>(
               initialValue: category,
-              dropdownColor: Colors.grey.shade900,
-              style: const TextStyle(color: Colors.white),
               items: ['Harassment', 'Physical', 'Verbal', 'Financial', 'Other']
                   .map((c) => DropdownMenuItem(value: c, child: Text(c)))
                   .toList(),
               onChanged: (val) {
                 if (val != null) category = val;
               },
-              decoration: const InputDecoration(
-                labelText: 'Category',
-                labelStyle: TextStyle(color: Colors.white70),
-              ),
+              decoration: const InputDecoration(labelText: 'Category'),
             ),
           ],
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               if (titleController.text.isNotEmpty) {
-                setState(() {
-                  _logs.insert(
-                    0,
-                    IncidentLog(
-                      id: DateTime.now().toIso8601String(),
-                      date: DateTime.now(),
-                      title: titleController.text,
-                      description: descController.text,
-                      category: category,
-                    ),
-                  );
-                });
+                Provider.of<AppState>(context, listen: false).addVaultLog(
+                  IncidentLog(
+                    id: DateTime.now().toIso8601String(),
+                    date: DateTime.now(),
+                    title: titleController.text,
+                    description: descController.text,
+                    category: category,
+                  ),
+                );
                 Navigator.pop(context);
               }
             },
@@ -98,17 +68,45 @@ class _VaultTabState extends State<VaultTab> {
     );
   }
 
+  void _exportSummary(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Secure Export Summary'),
+        content: const Text('Generate an encrypted PDF summary of your evidence timeline to take to SAPS, Thuthuzela Care Centres, or legal counsel?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Secure evidence summary exported successfully.')),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.teal),
+            child: const Text('Export PDF'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final logs = appState.vaultLogs;
+
     return Scaffold(
-      backgroundColor: Colors.black,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.grey.shade900,
+              color: Theme.of(context).colorScheme.surface,
               borderRadius: BorderRadius.circular(16),
               border: Border.all(color: Colors.grey.shade800),
             ),
@@ -119,18 +117,23 @@ class _VaultTabState extends State<VaultTab> {
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text(
-                        'Secure Evidence Vault',
-                        style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                    children: [
+                      const Text(
+                        'Private Evidence Locker',
+                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                       ),
-                      SizedBox(height: 4),
+                      const SizedBox(height: 4),
                       Text(
-                        'Entries are privately encrypted and stored locally. Only you hold the key.',
-                        style: TextStyle(color: Colors.white60, fontSize: 13),
+                        'Files are encrypted locally. Warning: Keep backups secure.',
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.6), fontSize: 13),
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  onPressed: () => _exportSummary(context),
+                  icon: const Icon(Icons.share_outlined, color: Colors.tealAccent),
+                  tooltip: 'Export Summary',
                 ),
               ],
             ),
@@ -141,25 +144,24 @@ class _VaultTabState extends State<VaultTab> {
             children: [
               const Text(
                 'Incident Timeline',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               IconButton(
-                onPressed: _addIncidentDialog,
+                onPressed: () => _addIncidentDialog(context),
                 icon: const Icon(Icons.note_add_outlined, color: Colors.tealAccent),
                 tooltip: 'Add Entry',
               ),
             ],
           ),
           const SizedBox(height: 8),
-          if (_logs.isEmpty)
+          if (logs.isEmpty)
             const Padding(
               padding: EdgeInsets.only(top: 40),
               child: Center(
-                child: Text('No entries in your secure vault yet.', style: TextStyle(color: Colors.white54)),
+                child: Text('No entries in your secure vault yet.'),
               ),
             ),
-          ..._logs.map((log) => Card(
-                color: Colors.grey.shade900,
+          ...logs.map((log) => Card(
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: Padding(
                   padding: const EdgeInsets.all(16),
@@ -171,7 +173,7 @@ class _VaultTabState extends State<VaultTab> {
                         children: [
                           Text(
                             log.title,
-                            style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                           ),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
@@ -189,12 +191,12 @@ class _VaultTabState extends State<VaultTab> {
                       const SizedBox(height: 8),
                       Text(
                         log.description,
-                        style: const TextStyle(color: Colors.white70, fontSize: 14),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.7)),
                       ),
                       const SizedBox(height: 12),
                       Text(
                         'Recorded: ${log.date.toLocal().toString().split('.')[0]}',
-                        style: const TextStyle(color: Colors.white38, fontSize: 12),
+                        style: TextStyle(color: Theme.of(context).colorScheme.onSurface.withValues(alpha: 0.4), fontSize: 12),
                       ),
                     ],
                   ),

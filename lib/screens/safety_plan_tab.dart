@@ -1,38 +1,29 @@
 import 'package:flutter/material.dart';
-import '../data/mock_data.dart';
+import 'package:provider/provider.dart';
 import '../models/safety_plan.dart';
+import '../providers/app_state.dart';
 
-class SafetyPlanTab extends StatefulWidget {
+class SafetyPlanTab extends StatelessWidget {
   const SafetyPlanTab({super.key});
 
-  @override
-  State<SafetyPlanTab> createState() => _SafetyPlanTabState();
-}
-
-class _SafetyPlanTabState extends State<SafetyPlanTab> {
-  final List<SafetyPlanItem> _plan = MockData.initialSafetyPlan;
-
-  void _addPlanItemDialog() {
+  void _addPlanItemDialog(BuildContext context) {
     final titleController = TextEditingController();
     final detailsController = TextEditingController();
 
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        backgroundColor: Colors.grey.shade900,
-        title: const Text('Add Safety Step', style: TextStyle(color: Colors.white)),
+        title: const Text('Add Safety Step'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: titleController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Step Title', labelStyle: TextStyle(color: Colors.white70)),
+              decoration: const InputDecoration(labelText: 'Step Title'),
             ),
             TextField(
               controller: detailsController,
-              style: const TextStyle(color: Colors.white),
-              decoration: const InputDecoration(labelText: 'Details / Actions', labelStyle: TextStyle(color: Colors.white70)),
+              decoration: const InputDecoration(labelText: 'Details / Actions'),
               maxLines: 3,
             ),
           ],
@@ -40,20 +31,18 @@ class _SafetyPlanTabState extends State<SafetyPlanTab> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel', style: TextStyle(color: Colors.white70)),
+            child: const Text('Cancel'),
           ),
           ElevatedButton(
             onPressed: () {
               if (titleController.text.isNotEmpty) {
-                setState(() {
-                  _plan.add(
-                    SafetyPlanItem(
-                      id: DateTime.now().toIso8601String(),
-                      title: titleController.text,
-                      details: detailsController.text,
-                    ),
-                  );
-                });
+                Provider.of<AppState>(context, listen: false).addSafetyItem(
+                  SafetyPlanItem(
+                    id: DateTime.now().toIso8601String(),
+                    title: titleController.text,
+                    details: detailsController.text,
+                  ),
+                );
                 Navigator.pop(context);
               }
             },
@@ -67,8 +56,10 @@ class _SafetyPlanTabState extends State<SafetyPlanTab> {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final plan = appState.safetyPlan;
+
     return Scaffold(
-      backgroundColor: Colors.black,
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
@@ -88,14 +79,14 @@ class _SafetyPlanTabState extends State<SafetyPlanTab> {
                     SizedBox(width: 12),
                     Text(
                       'Personal Safety Plan',
-                      style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                     ),
                   ],
                 ),
                 SizedBox(height: 8),
                 Text(
-                  'A confidential, step-by-step preparation plan tailored to South African legal frameworks (Protection Orders, Shelters, and Thuthuzela Care Centres). Share only with trusted circle members.',
-                  style: TextStyle(color: Colors.white70, fontSize: 13),
+                  'A confidential preparation plan tailored to South African legal frameworks (Protection Orders, Shelters, Thuthuzela Care Centres).',
+                  style: TextStyle(fontSize: 13),
                 ),
               ],
             ),
@@ -106,54 +97,28 @@ class _SafetyPlanTabState extends State<SafetyPlanTab> {
             children: [
               const Text(
                 'My Safety Checklist',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.white),
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
               ),
               IconButton(
-                onPressed: _addPlanItemDialog,
+                onPressed: () => _addPlanItemDialog(context),
                 icon: const Icon(Icons.add_circle_outline, color: Colors.tealAccent),
                 tooltip: 'Add Custom Step',
               ),
             ],
           ),
           const SizedBox(height: 8),
-          ..._plan.map((item) => Card(
-                color: Colors.grey.shade900,
+          ...plan.map((item) => Card(
                 margin: const EdgeInsets.symmetric(vertical: 6),
                 child: CheckboxListTile(
-                  title: Text(item.title, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-                  subtitle: Text(item.details, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                  title: Text(item.title, style: const TextStyle(fontWeight: FontWeight.bold)),
+                  subtitle: Text(item.details, style: const TextStyle(fontSize: 13)),
                   value: item.isCompleted,
                   activeColor: Colors.teal,
-                  checkColor: Colors.white,
                   onChanged: (val) {
-                    setState(() {
-                      item.isCompleted = val ?? false;
-                    });
+                    appState.toggleSafetyItem(item.id);
                   },
                 ),
               )),
-          const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.grey.shade900,
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: const Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'SA Legal & Protection Order Guidance',
-                  style: TextStyle(color: Colors.tealAccent, fontWeight: FontWeight.bold, fontSize: 16),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  '• Protection Orders can be applied for at your nearest Magistrate’s Court at no cost.\n• You do not need a lawyer to apply for an interim protection order.\n• Emergency housing is available via the National Shelter Movement (0800 001 005).',
-                  style: TextStyle(color: Colors.white70, fontSize: 13, height: 1.4),
-                ),
-              ],
-            ),
-          ),
         ],
       ),
     );

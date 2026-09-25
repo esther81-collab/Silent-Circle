@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'screens/home_screen.dart';
+import 'core/theme/app_theme.dart';
+import 'providers/app_state.dart';
 
 void main() {
-  runApp(const SilentCircleApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => AppState(),
+      child: const SilentCircleApp(),
+    ),
+  );
 }
 
 class SilentCircleApp extends StatelessWidget {
@@ -10,18 +18,14 @@ class SilentCircleApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+
     return MaterialApp(
       title: 'Silent Circle',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: Colors.teal,
-          brightness: Brightness.dark,
-        ),
-        scaffoldBackgroundColor: Colors.black,
-        useMaterial3: true,
-      ),
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: appState.isDarkMode ? ThemeMode.dark : ThemeMode.light,
       home: const HomeScreen(),
     );
   }
